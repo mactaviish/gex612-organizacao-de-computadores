@@ -11,6 +11,8 @@ msg_removido_indice:
 	.asciz "\nRemovido com sucesso!\nValor: "
 msg_removido_valor:
 	.asciz "\nRemovido com sucesso!\nIndice: "
+quebra_linha:
+	.asciz "   "
 selecao_menu:
     	.word 0
 head:
@@ -36,6 +38,7 @@ menu:
 
     	#chama a funcao selecionada pelo usuario
    	li t1, 4
+	jal seta_head
     	beq t0, t1, imprime_lista
     	li t1, 5
     	beq t0, t1, estatistica
@@ -88,18 +91,17 @@ remover_por_valor:
     	mv t6, a1
     	j verifica_retorno
 imprime_lista:
-    	la t0, head
-laco_imprecao:
-	beq t0, zero, fim_laco
-	lw t1, 0(t0)
-	
+	lw t0, 0(a0)
+laco_imprecao:	#laco impressao
+	lw a6, 0(t0)
+	beq a6, zero, fim_laco	
 	li a7, 1
-	mv a0, t1
+	mv a0, a6
 	ecall
-	
-#	add zero, zero, zero
-
-    	addi t0, t0, 4
+	li a7, 4
+	la a0, quebra_linha
+	ecall
+	addi t0, t0, 8
     	j laco_imprecao
 fim_laco:
     	j menu
@@ -113,6 +115,7 @@ ler_valor:
 	li a7, 5
 	ecall
 	mv a1, a0
+seta_head:
 	la a0, head
 	ret
 malloc_8:
