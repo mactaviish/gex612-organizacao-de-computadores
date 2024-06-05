@@ -1,18 +1,18 @@
 .data
 menu_string:
-    	.asciz "\n\n# Menu\n#1 - Inserir elemento na lista\n#2 - Remover elemento da lista por indice\n#3 - Remover elemento da lista por valor\n#4 - Mostrar todos os elementos da lista\n#5 - Mostrar estatisticas\n#6 - Sair do programa\nEscolha: "
+    	.string "\n\n# Menu\n#1 - Inserir elemento na lista\n#2 - Remover elemento da lista por indice\n#3 - Remover elemento da lista por valor\n#4 - Mostrar todos os elementos da lista\n#5 - Mostrar estatisticas\n#6 - Sair do programa\nEscolha: "
 msg_inserir_valor: 
-	.asciz "\nDigite o valor:\n"
+	.string "\nDigite o valor:\n"
 msg_erro: 
-	.asciz "\nOcorreu um erro\n"
+	.string "\nOcorreu um erro\n"
 msg_inserido:
-	.asciz "\nInserido com sucesso!\nIndice: "
+	.string "\nInserido com sucesso!\nIndice: "
 msg_removido_indice:
-	.asciz "\nRemovido com sucesso!\nValor: "
+	.string "\nRemovido com sucesso!\nValor: "
 msg_removido_valor:
-	.asciz "\nRemovido com sucesso!\nIndice: "
+	.string "\nRemovido com sucesso!\nIndice: "
 quebra_linha:
-	.asciz "   "
+	.string "   "
 selecao_menu:
     	.word 0
 head:
@@ -38,7 +38,6 @@ menu:
 
     	#chama a funcao selecionada pelo usuario
    	li t1, 4
-	jal seta_head
     	beq t0, t1, imprime_lista
     	li t1, 5
     	beq t0, t1, estatistica
@@ -56,30 +55,39 @@ menu:
  	#caso alguma opcao invalida seja selecionada imprime o menu novamente
     	j menu
 inserir_inteiro:
-	mv s0, a0
-	jal malloc_8
+	la s0, head
+	jal malloc_8	
+	lw t0, 0(s0)
+	beq t0, zero, lista_vazia #COMECO LACO
+laco_insercao:	
+	beqz s0, verifica_retorno		
+	lw a6, 0(t0) #a6 é o valor
+	beq a6, zero, fim_laco
+	bge a1, a6, proximo
+	
+	lw t4, 4(t0)   
+	sw t0, 4(a0) 
+	sw a1, 0(a0) 
+		
+	lw s0, 4(t0)
+    	j laco_insercao
 
-	lw s0, 0(s0)
-	beq s0, zero, lista_vazia
-
-	lw t1, tail #endereco ultimo
-	sw a0, 4(t1) #ultimo aponta para o novo
-	sw a1, 0(a0) #salva o valor do novo
-	sw zero, 4(a0) #novo aponta para null
-	la t1, tail #endereco ultimo
-	sw a0, 0(t1) #novo ultimo
-
-	jal atualiza_qtd
-    	j verifica_retorno
+proximo:
+	mv s0, a0 #PROXIMO
+	sw a1, 0(s0)
+	sw zero, 4(s0)
+	sw a0, 4(t0) #ultimo aponta para o novo
+	lw s0, 4(s0)
+    	j laco_insercao
 lista_vazia:
 	mv s0, a0
 	la t0, head
 	la t1, tail
 	sw s0, 0(t0)
 	sw s0, 0(t1)
-	sw a1, 0(s0)
-	sw zero, 4(s0)
-
+    	sw a1, 0(s0)
+    	sw zero, 4(s0)
+    	
 	jal atualiza_qtd
 	j verifica_retorno
 remover_por_indice:
@@ -92,8 +100,9 @@ remover_por_valor:
     	j verifica_retorno
 imprime_lista:
 	lw t0, 0(a0)
-laco_imprecao:	#laco impressao
-	lw a6, 0(t0)
+laco_imprecao:	
+	beqz t0, fim_laco
+	lw a6, 0(t0) #laco impressao
 	beq a6, zero, fim_laco	
 	li a7, 1
 	mv a0, a6
@@ -101,7 +110,7 @@ laco_imprecao:	#laco impressao
 	li a7, 4
 	la a0, quebra_linha
 	ecall
-	addi t0, t0, 8
+	lw t0, 4(t0)
     	j laco_imprecao
 fim_laco:
     	j menu
