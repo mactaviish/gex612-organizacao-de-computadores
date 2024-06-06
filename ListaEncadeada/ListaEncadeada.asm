@@ -1,25 +1,29 @@
 .data
 menu_string:
-    	.string "\n\n# Menu\n#1 - Inserir elemento na lista\n#2 - Remover elemento da lista por indice\n#3 - Remover elemento da lista por valor\n#4 - Mostrar todos os elementos da lista\n#5 - Mostrar estatisticas\n#6 - Sair do programa\nEscolha: "
+    	.asciz "\n\n# Menu\n#1 - Inserir elemento na lista\n#2 - Remover elemento da lista por indice\n#3 - Remover elemento da lista por valor\n#4 - Mostrar todos os elementos da lista\n#5 - Mostrar estatisticas\n#6 - Sair do programa\nEscolha: "
 msg_inserir_valor: 
-	.string "\nDigite o valor:\n"
+	.asciz "\nDigite o valor:\n"
 msg_erro: 
-	.string "\nOcorreu um erro\n"
+	.asciz "\nOcorreu um erro\n"
 msg_inserido:
-	.string "\nInserido com sucesso!\nIndice: "
+	.asciz "\nInserido com sucesso!\nIndice: "
 msg_removido_indice:
-	.string "\nRemovido com sucesso!\nValor: "
+	.asciz "\nRemovido com sucesso!\nValor: "
 msg_removido_valor:
-	.string "\nRemovido com sucesso!\nIndice: "
+	.asciz "\nRemovido com sucesso!\nIndice: "
 quebra_linha:
-	.string "   "
+	.asciz "   "
 selecao_menu:
     	.word 0
 head:
 	.word 0
 tail:
 	.word 0
-qtd_lista:
+insercoes:
+	.word 0
+qtd:
+	.word 0
+anterior:
 	.word 0
 .text
 
@@ -38,71 +42,93 @@ menu:
 
     	#chama a funcao selecionada pelo usuario
    	li t1, 4
-    	beq t0, t1, imprime_lista
+    	beq t0, t1, imprime_lista_call
     	li t1, 5
-    	beq t0, t1, estatistica
+    	beq t0, t1, estatistica_call
     	li t1, 6
     	beq t0, t1, sair_programa
 
-	jal ler_valor
-
     	li t1, 1
-    	beq t0, t1, inserir_inteiro
+    	beq t0, t1, inserir_inteiro_call
     	li t1, 2
-    	beq t0, t1, remover_por_indice
+    	beq t0, t1, remover_por_indice_call
     	li t1, 3
-    	beq t0, t1, remover_por_valor
+    	beq t0, t1, remover_por_valor_call
  	#caso alguma opcao invalida seja selecionada imprime o menu novamente
     	j menu
+inserir_inteiro_call:
+	jal ler_valor
+	jal inserir_inteiro
+	j verifica_retorno
 inserir_inteiro:
-	la s0, head
-	jal malloc_8	
-	lw t0, 0(s0)
-	beq t0, zero, lista_vazia #COMECO LACO
-laco_insercao:	
-	beqz s0, verifica_retorno		
-	lw a6, 0(t0) #a6 é o valor
-	beq a6, zero, fim_laco
-	bge a1, a6, proximo
+	mv s0, a0 #head
+	#alloca memoria
+	li a0, 8
+	li a7, 9
+	ecall
+	#a0 vai ter a nova posicao de memoria
+	#sw a1, 0(a0) -  sempre vai executar esta linha
+	lw t4, 0(s0) #atual head
+	beq t4, zero, inserir_cabeca
+	lw s1, 0(t4)
+	blt a1, s1, inserir_cabeca
+inserir_loop:
+	lw t6, 4(t4) #carrega o proximo
+	beqz t6, inserir_fim
+	lw t5, 0(t6) #carrega o proximo valor
+	bge a1, t5, continuar_insercao
+	sw t6, 4(a0)
+	sw a0, 4(t4)
+	sw a1, 0(a0)
+	j update_estatisticas
+inserir_cabeca:
+	sw t4, 4(a0)
+	sw a1, 0(a0)
+	sw a0, 0(s0)
+	j update_estatisticas
+continuar_insercao:
+	mv t4, t6
+	j inserir_loop
+inserir_fim:
+	sw a1, 0(a0)
+	sw zero, 4(a0)
+	sw a0, 4(t4)
+	j update_estatisticas
+update_estatisticas:
+	lw t6, insercoes
+	addi t0, t0, 1
+	la t1, insercoes
+	sw t6, 0(t1)
 	
-	lw t4, 4(t0)   
-	sw t0, 4(a0) 
-	sw a1, 0(a0) 
-		
-	lw s0, 4(t0)
-    	j laco_insercao
-
-proximo:
-	mv s0, a0 #PROXIMO
-	sw a1, 0(s0)
-	sw zero, 4(s0)
-	sw a0, 4(t0) #ultimo aponta para o novo
-	lw s0, 4(s0)
-    	j laco_insercao
-lista_vazia:
-	mv s0, a0
-	la t0, head
-	la t1, tail
-	sw s0, 0(t0)
-	sw s0, 0(t1)
-    	sw a1, 0(s0)
-    	sw zero, 4(s0)
-    	
-	jal atualiza_qtd
+	lw t6, qtd
+	addi t0, t0, 1
+	la t1, qtd
+	sw t6, 0(t1)
+	ret
+remover_por_indice_call:
+	jal ler_valor
+	jal remover_por_indice
 	j verifica_retorno
 remover_por_indice:
     	# ...
     	li t6, -1
-    	j verifica_retorno
+	ret
+remover_por_valor_call:
+	jal ler_valor
+	jal remover_por_valor
+	j verifica_retorno
 remover_por_valor:
     	# ...
     	mv t6, a1
-    	j verifica_retorno
+	ret
+imprime_lista_call:
+	jal seta_head
+	jal imprime_lista
+	j verifica_retorno
 imprime_lista:
 	lw t0, 0(a0)
-laco_imprecao:	
-	beqz t0, fim_laco
-	lw a6, 0(t0) #laco impressao
+laco_imprecao:	#laco impressao
+	lw a6, 0(t0)
 	beq a6, zero, fim_laco	
 	li a7, 1
 	mv a0, a6
@@ -110,13 +136,17 @@ laco_imprecao:
 	li a7, 4
 	la a0, quebra_linha
 	ecall
-	lw t0, 4(t0)
+	addi t0, t0, 8
     	j laco_imprecao
 fim_laco:
     	j menu
+estatistica_call:
+	jal seta_head
+	jal estatistica
+	j verifica_retorno
 estatistica:
     	# ...
-    	j menu
+    	ret
 ler_valor:
 	la a0, msg_inserir_valor
 	li a7, 4
@@ -126,17 +156,6 @@ ler_valor:
 	mv a1, a0
 seta_head:
 	la a0, head
-	ret
-malloc_8:
-	li a0, 8
-	li a7, 9
-	ecall
-	ret
-atualiza_qtd:
-	lw t6, qtd_lista
-	addi t6, t6, 1
-	la t1, qtd_lista
-	sw t6, 0(t1)
 	ret
 verifica_retorno:
 	blt t6, zero, retorno_com_erro
