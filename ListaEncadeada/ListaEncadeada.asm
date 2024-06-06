@@ -21,6 +21,8 @@ tail:
 	.word 0
 qtd_lista:
 	.word 0
+anterior:
+	.word 0
 .text
 
 main:
@@ -38,58 +40,74 @@ menu:
 
     	#chama a funcao selecionada pelo usuario
    	li t1, 4
-	jal seta_head
-    	beq t0, t1, imprime_lista
+    	beq t0, t1, imprime_lista_call
     	li t1, 5
-    	beq t0, t1, estatistica
+    	beq t0, t1, estatistica_call
     	li t1, 6
     	beq t0, t1, sair_programa
 
-	jal ler_valor
-
     	li t1, 1
-    	beq t0, t1, inserir_inteiro
+    	beq t0, t1, inserir_inteiro_call
     	li t1, 2
-    	beq t0, t1, remover_por_indice
+    	beq t0, t1, remover_por_indice_call
     	li t1, 3
-    	beq t0, t1, remover_por_valor
+    	beq t0, t1, remover_por_valor_call
  	#caso alguma opcao invalida seja selecionada imprime o menu novamente
     	j menu
+inserir_inteiro_call:
+	jal ler_valor
+	jal inserir_inteiro
+	j verifica_retorno
 inserir_inteiro:
-	mv s0, a0
-	jal malloc_8
-
+	mv s0, a0 #head
+	#alloca memoria
+	li a0, 8
+	li a7, 9
+	ecall
+	#a0 vai ter a nova posicao de memoria
+	#sw a1, 0(a0) -  sempre vai executar esta linha
 	lw s0, 0(s0)
 	beq s0, zero, lista_vazia
+laco_lista:
+	#s0 contem HEAD 
+	la t2, anterior
+	lw s0, 0(t2) #salvando o anterior
+	lw t4, 0(s0)
 
-	lw t1, tail #endereco ultimo
-	sw a0, 4(t1) #ultimo aponta para o novo
-	sw a1, 0(a0) #salva o valor do novo
-	sw zero, 4(a0) #novo aponta para null
-	la t1, tail #endereco ultimo
-	sw a0, 0(t1) #novo ultimo
-
-	jal atualiza_qtd
-    	j verifica_retorno
+	bge a1, s0, proximo	
+	ret
+proximo:
+	sw a0, 4(s0)
+	sw a1, 0(a0)
+	sw zero, 4(a0)
+	lw s0, 4(s0) #NEXT
+	j laco_lista
 lista_vazia:
-	mv s0, a0
-	la t0, head
-	la t1, tail
-	sw s0, 0(t0)
-	sw s0, 0(t1)
-	sw a1, 0(s0)
-	sw zero, 4(s0)
-
-	jal atualiza_qtd
+	la t1, head
+	sw a0, 0(t1)
+	sw a1, 0(a0)
+	sw zero, 4(a0)
+	ret
+remover_por_indice_call:
+	jal ler_valor
+	jal remover_por_indice
 	j verifica_retorno
 remover_por_indice:
     	# ...
     	li t6, -1
-    	j verifica_retorno
+	ret
+remover_por_valor_call:
+	jal ler_valor
+	jal remover_por_valor
+	j verifica_retorno
 remover_por_valor:
     	# ...
     	mv t6, a1
-    	j verifica_retorno
+	ret
+imprime_lista_call:
+	jal seta_head
+	jal imprime_lista
+	j verifica_retorno
 imprime_lista:
 	lw t0, 0(a0)
 laco_imprecao:	#laco impressao
@@ -105,9 +123,13 @@ laco_imprecao:	#laco impressao
     	j laco_imprecao
 fim_laco:
     	j menu
+estatistica_call:
+	jal seta_head
+	jal estatistica
+	j verifica_retorno
 estatistica:
     	# ...
-    	j menu
+    	ret
 ler_valor:
 	la a0, msg_inserir_valor
 	li a7, 4
@@ -117,11 +139,6 @@ ler_valor:
 	mv a1, a0
 seta_head:
 	la a0, head
-	ret
-malloc_8:
-	li a0, 8
-	li a7, 9
-	ecall
 	ret
 atualiza_qtd:
 	lw t6, qtd_lista
