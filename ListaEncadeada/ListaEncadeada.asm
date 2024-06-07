@@ -11,6 +11,12 @@ msg_removido_indice:
 	.asciz "\nRemovido com sucesso!\nValor: "
 msg_removido_valor:
 	.asciz "\nRemovido com sucesso!\nIndice: "
+msg_maior_valor:
+	.asciz "\nMaior Valor: "
+msg_menor_valor:
+	.asciz "\nMenor Valor: "
+msg_qtd_insercoes:
+	.asciz "\nQuantidade de Insercoes: "			
 quebra_linha:
 	.asciz "   "
 selecao_menu:
@@ -24,6 +30,12 @@ insercoes:
 qtd:
 	.word 0
 anterior:
+	.word 0
+maior:
+	.word 0
+menor:
+	.word 0
+remocoes:
 	.word 0
 .text
 
@@ -56,12 +68,14 @@ menu:
     	beq t0, t1, remover_por_valor_call
  	#caso alguma opcao invalida seja selecionada imprime o menu novamente
     	j menu
+ #BEGIN INSERCAO
 inserir_inteiro_call:
 	jal ler_valor
 	jal inserir_inteiro
 	j verifica_retorno
 inserir_inteiro:
 	mv s0, a0 #head
+	addi s4, s4, 0
 	#alloca memoria
 	li a0, 8
 	li a7, 9
@@ -74,23 +88,38 @@ inserir_loop:
 	lw t6, 4(t4) #carrega o proximo
 	beqz t6, inserir_fim
 	lw t5, 0(t6) #carrega o proximo valor
-	bge a1, t5, continuar_insercao
-	sw t6, 4(a0)
-	sw a0, 4(t4)
-	sw a1, 0(a0)
+	bge a1, t5, continuar_insercao #se o novo valor for maior ou igual ao proximo, continua percorrendo
+	sw t6, 4(a0) #adiciona no meio
+	sw a0, 4(t4) #adiciona no meio
+	sw a1, 0(a0) #adiciona no meio
+	addi s4, s4, 1 #contador do indice
 	j update_estatisticas
-inserir_cabeca:
-	sw t4, 4(a0)
-	sw a1, 0(a0)
-	sw a0, 0(s0)
+inserir_cabeca:	
+	sw t4, 4(a0) #aponta para o proximo, usando o endereco do head atual
+	sw a1, 0(a0) #adiciona o valor inserido
+	sw a0, 0(s0) #aponta o novo head
+	
+	la s3, menor #salva maior
+	sw a1, 0(s3)
+
+	addi s4, s4, 1 #contador do indice
 	j update_estatisticas
 continuar_insercao:
 	mv t4, t6
+	addi s4, s4, 1 #contador do indice
 	j inserir_loop
 inserir_fim:
 	sw a1, 0(a0)
 	sw zero, 4(a0)
 	sw a0, 4(t4)
+	
+	lw t6, 4(t4) #carrega o proximo
+	
+	la s3, maior #salva maior
+	lw s1, 0(t6)
+	sw s1, 0(s3)
+	
+	addi s4, s4, 1 #contador do indice
 	j update_estatisticas
 update_estatisticas:
 	lw t6, insercoes
@@ -102,16 +131,54 @@ update_estatisticas:
 	addi t6, t6, 1
 	la t1, qtd
 	sw t6, 0(t1)
-	lw t6, qtd
+	mv t6, s4
 	ret
+#END INSERCAO
+#BEGIN REMOVER POR INDICE
 remover_por_indice_call:
 	jal ler_valor
 	jal remover_por_indice
 	j verifica_retorno
 remover_por_indice:
-    	# ...
-    	li t6, -1
+	lw t3, 0(a0)
+    	beqz t3, erro_remocao #lista vazia, nao é possivel remover
+    	mv t4, zero #contador de indices
+    	beq a1, zero, remove_primeiro
+remove_loop:
+	lw t5, 4(t3)
+	addi t4, t4, 1
+	beq t4, a1, remove_elemento
+	beqz t5, erro_remocao #indice nao existe na lista
+	mv t3, t5
+	j remove_loop
+remove_primeiro:
+	lw t5, 4(t3) #remove primeiro
+	sw t5, 0(a0)
+	j update_remocao
+remove_elemento:
+	lw t6, 4(t5)
+	sw t6, 4(t3)
+update_remocao:
+	lw t0, remocoes
+	addi t0, t0, 1
+	la t1, remocoes
+	sw t0, 0(t1)
+	
+	lw t0, qtd
+	addi t0, t0, -1
+	la t1, qtd
+	lw t0, 0(t1)
+	beqz t6, removido_ultimo
+	lw t6, 0(t5)
 	ret
+erro_remocao:
+	li t6, -1
+	ret
+removido_ultimo:
+	lw t6, 0(t3)
+	ret
+
+#END REMOVER POR INDICE
 remover_por_valor_call:
 	jal ler_valor
 	jal remover_por_valor
@@ -126,7 +193,7 @@ imprime_lista_call:
 	j verifica_retorno
 imprime_lista:
 	lw t6, 0(a0)
-laco_imprecao:	
+laco_impressao:	
 	beqz t6, fim_laco	#laco impressao
 	li a7, 1
 	lw a0, 0(t6)
@@ -135,16 +202,39 @@ laco_imprecao:
 	la a0, quebra_linha
 	ecall
 	lw t6, 4(t6)
-    	j laco_imprecao
+    	j laco_impressao
 fim_laco:
     	j menu
 estatistica_call:
 	jal seta_head
-	jal estatistica
-	j verifica_retorno
+	jal estatistica	
+	j menu
 estatistica:
-    	# ...
-    	ret
+	la a0, msg_maior_valor
+	li a7, 4
+	ecall	
+	la t0, maior
+	lw a0, 0(t0)
+	li a7, 1
+	ecall
+	
+	la a0, msg_menor_valor
+	li a7, 4
+	ecall
+	la t0, menor
+	lw a0, 0(t0)
+	li a7, 1
+	ecall
+	
+	la a0, msg_qtd_insercoes
+	li a7, 4
+	ecall
+	la t0, insercoes
+	lw a0, 0(t0)
+	li a7, 1
+	ecall
+	
+	ret
 ler_valor:
 	la a0, msg_inserir_valor
 	li a7, 4
@@ -156,6 +246,7 @@ seta_head:
 	la a0, head
 	ret
 verifica_retorno:
+	add s4, zero, zero
 	blt t6, zero, retorno_com_erro
 	lw t0, selecao_menu
 	li t1, 1
@@ -176,6 +267,7 @@ executa_retorno:
 	li a7, 4
 	ecall
 	mv a0, t6
+	mv t6, zero
 	li a7, 1
 	ecall
 	j menu
