@@ -66,12 +66,10 @@ inserir_inteiro:
 	li a0, 8
 	li a7, 9
 	ecall
-	#a0 vai ter a nova posicao de memoria
-	#sw a1, 0(a0) -  sempre vai executar esta linha
 	lw t4, 0(s0) #atual head
-	beq t4, zero, inserir_cabeca
+	beq t4, zero, inserir_cabeca #se a lista estiver vazia, insere na ponta
 	lw s1, 0(t4)
-	blt a1, s1, inserir_cabeca
+	blt a1, s1, inserir_cabeca #se o valor for menor que o valor presente no head, inserir o novo valor no head
 inserir_loop:
 	lw t6, 4(t4) #carrega o proximo
 	beqz t6, inserir_fim
@@ -96,14 +94,15 @@ inserir_fim:
 	j update_estatisticas
 update_estatisticas:
 	lw t6, insercoes
-	addi t0, t0, 1
+	addi t6, t6, 1
 	la t1, insercoes
 	sw t6, 0(t1)
 	
 	lw t6, qtd
-	addi t0, t0, 1
+	addi t6, t6, 1
 	la t1, qtd
 	sw t6, 0(t1)
+	lw t6, qtd
 	ret
 remover_por_indice_call:
 	jal ler_valor
@@ -126,17 +125,16 @@ imprime_lista_call:
 	jal imprime_lista
 	j verifica_retorno
 imprime_lista:
-	lw t0, 0(a0)
-laco_imprecao:	#laco impressao
-	lw a6, 0(t0)
-	beq a6, zero, fim_laco	
+	lw t6, 0(a0)
+laco_imprecao:	
+	beqz t6, fim_laco	#laco impressao
 	li a7, 1
-	mv a0, a6
+	lw a0, 0(t6)
 	ecall
 	li a7, 4
 	la a0, quebra_linha
 	ecall
-	addi t0, t0, 8
+	lw t6, 4(t6)
     	j laco_imprecao
 fim_laco:
     	j menu
