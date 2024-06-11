@@ -17,6 +17,10 @@ msg_menor_valor:
 	.asciz "\nMenor Valor: "
 msg_qtd_insercoes:
 	.asciz "\nQuantidade de Insercoes: "			
+msg_qtd_remocoes:
+	.asciz "\nQuantidade de remocoes: "			
+msg_lista_vazia:
+	.asciz "\nA lista está vazia "			
 quebra_linha:
 	.asciz "   "
 selecao_menu:
@@ -168,8 +172,8 @@ update_remocao:
 	addi t0, t0, -1
 	la t1, qtd
 	lw t0, 0(t1)
-	beqz t6, removido_ultimo
-	lw t6, 0(t5)
+	
+	lw t6, 0(t3)
 	ret
 erro_remocao:
 	li t6, -1
@@ -190,26 +194,30 @@ remover_por_valor:
 imprime_lista_call:
 	jal seta_head
 	jal imprime_lista
-	j verifica_retorno
+	j menu
 imprime_lista:
-	lw t6, 0(a0)
+	lw t2, 0(a0)
+	beqz t2, padrao_vazia
 laco_impressao:	
-	beqz t6, fim_laco	#laco impressao
+	beqz t2, fim_laco	#laco impressao
 	li a7, 1
-	lw a0, 0(t6)
+	lw a0, 0(t2)
 	ecall
 	li a7, 4
 	la a0, quebra_linha
 	ecall
-	lw t6, 4(t6)
+	lw t2, 4(t2)
     	j laco_impressao
 fim_laco:
-    	j menu
+    	ret
 estatistica_call:
 	jal seta_head
 	jal estatistica	
 	j menu
 estatistica:
+	la t1, head
+	lw t1, 0(t1)
+	beqz t1, padrao_vazia
 	la a0, msg_maior_valor
 	li a7, 4
 	ecall	
@@ -234,6 +242,19 @@ estatistica:
 	li a7, 1
 	ecall
 	
+	la a0, msg_qtd_remocoes
+	li a7, 4
+	ecall
+	la t0, remocoes
+	lw a0, 0(t0)
+	li a7, 1
+	ecall
+	
+	ret
+padrao_vazia:
+	la a0, msg_lista_vazia
+	li a7, 4
+	ecall
 	ret
 ler_valor:
 	la a0, msg_inserir_valor
