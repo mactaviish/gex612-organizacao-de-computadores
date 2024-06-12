@@ -20,7 +20,9 @@ msg_qtd_insercoes:
 msg_qtd_remocoes:
 	.asciz "\nQuantidade de remocoes: "			
 msg_lista_vazia:
-	.asciz "\nA lista está vazia "			
+	.asciz "\nA lista está vazia "	
+msg_valor_inserido_invalido:		
+	.asciz "\nO Valor inserido é invalido "	
 quebra_linha:
 	.asciz "   "
 selecao_menu:
@@ -106,7 +108,7 @@ inserir_cabeca:
 	la s3, menor #salva maior
 	sw a1, 0(s3)
 
-	addi s4, s4, 1 #contador do indice
+	#addi s4, s4, 1 #contador do indice
 	j update_estatisticas
 continuar_insercao:
 	mv t4, t6
@@ -144,24 +146,37 @@ remover_por_indice_call:
 	jal remover_por_indice
 	j verifica_retorno
 remover_por_indice:
+	li s9, 1
 	lw t3, 0(a0)
     	beqz t3, erro_remocao #lista vazia, nao é possivel remover
     	mv t4, zero #contador de indices
     	beq a1, zero, remove_primeiro
-remove_loop:
+remove_indice_loop:
 	lw t5, 4(t3)
 	addi t4, t4, 1
 	beq t4, a1, remove_elemento
 	beqz t5, erro_remocao #indice nao existe na lista
 	mv t3, t5
-	j remove_loop
+	
+	j remove_indice_loop
 remove_primeiro:
 	lw t5, 4(t3) #remove primeiro
 	sw t5, 0(a0)
+	beqz t5, update_remocao
+	
+	la s3, menor #salva menor
+	lw a1, 0(t5)
+	sw a1, 0(s3)
 	j update_remocao
 remove_elemento:
-	lw t6, 4(t5)
-	sw t6, 4(t3)
+	lw t1, 4(t5)
+	sw t1, 4(t3)
+	
+	la s3, maior #salva maior
+	lw s1, 0(t3)
+	sw s1, 0(s3)
+	
+	mv t3, t5
 update_remocao:
 	lw t0, remocoes
 	addi t0, t0, 1
@@ -171,9 +186,13 @@ update_remocao:
 	lw t0, qtd
 	addi t0, t0, -1
 	la t1, qtd
-	lw t0, 0(t1)
+	lw t0, 0(t1)	
 	
-	lw t6, 0(t3)
+	beqz s9, retorno_indice #se for zero, ele retorna o indice. Se não, retorna o valor
+	lw t6, 0(t3) #quem foi removido
+	ret
+retorno_indice:
+	mv t6, t4 #quem foi removido
 	ret
 erro_remocao:
 	li t6, -1
@@ -188,9 +207,21 @@ remover_por_valor_call:
 	jal remover_por_valor
 	j verifica_retorno
 remover_por_valor:
-    	# ...
-    	mv t6, a1
-	ret
+	li s9, 0
+	lw t3, 0(a0)
+    	beqz t3, erro_remocao #lista vazia, nao é possivel remover
+    	mv t4, zero #contador de indices
+    	lw t2, 0(t3)
+    	beq a1, t2, remove_primeiro
+remove_valor_loop:
+	lw t5, 4(t3)
+	addi t4, t4, 1
+	lw t2, 0(t5)
+	beq t2, a1, remove_elemento
+	beqz t5, erro_remocao #indice nao existe na lista
+	mv t3, t5	
+	j remove_valor_loop
+	j update_remocao
 imprime_lista_call:
 	jal seta_head
 	jal imprime_lista
@@ -260,11 +291,17 @@ ler_valor:
 	la a0, msg_inserir_valor
 	li a7, 4
 	ecall
+	beqz a0, valor_invalido
 	li a7, 5
 	ecall
 	mv a1, a0
 seta_head:
 	la a0, head
+	ret
+valor_invalido:
+	la a0, msg_valor_inserido_invalido
+	li a7, 4
+	ecall
 	ret
 verifica_retorno:
 	add s4, zero, zero
