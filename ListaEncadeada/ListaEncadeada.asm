@@ -173,7 +173,7 @@ remove_elemento:
 	sw t1, 4(t3)
 	
 	la s3, maior #salva maior
-	lw s1, 0(t3)
+	lw s1, 0(t1)
 	sw s1, 0(s3)
 	
 	mv t3, t5
