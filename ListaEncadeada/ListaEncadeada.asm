@@ -1,3 +1,6 @@
+#Edipo Antonio de Jesus - 1721101024
+#Leonardo Brancalione - 1721101025
+
 .data
 menu_string:
     	.asciz "\n\n# Menu\n#1 - Inserir elemento na lista\n#2 - Remover elemento da lista por indice\n#3 - Remover elemento da lista por valor\n#4 - Mostrar todos os elementos da lista\n#5 - Mostrar estatisticas\n#6 - Sair do programa\nEscolha: "
@@ -29,13 +32,9 @@ selecao_menu:
     	.word 0
 head:
 	.word 0
-tail:
-	.word 0
 insercoes:
 	.word 0
 qtd:
-	.word 0
-anterior:
 	.word 0
 maior:
 	.word 0
@@ -74,7 +73,6 @@ menu:
     	beq t0, t1, remover_por_valor_call
  	#caso alguma opcao invalida seja selecionada imprime o menu novamente
     	j menu
- #BEGIN INSERCAO
 inserir_inteiro_call:
 	jal ler_valor
 	jal inserir_inteiro
@@ -86,6 +84,7 @@ inserir_inteiro:
 	li a0, 8
 	li a7, 9
 	ecall
+	beqz a0, erro_alocacao_memoria
 	lw t4, 0(s0) #atual head
 	beq t4, zero, inserir_cabeca #se a lista estiver vazia, insere na ponta
 	lw s1, 0(t4)
@@ -139,8 +138,9 @@ update_estatisticas:
 	sw t6, 0(t1)
 	mv t6, s4
 	ret
-#END INSERCAO
-#BEGIN REMOVER POR INDICE
+erro_alocacao_memoria:
+	li t6, -1
+	ret
 remover_por_indice_call:
 	jal ler_valor
 	jal remover_por_indice
@@ -173,9 +173,13 @@ remove_elemento:
 	sw t1, 4(t3)
 	
 	la s3, maior #salva maior
+	beqz t1, continua
 	lw s1, 0(t1)
 	sw s1, 0(s3)
-	
+	j update_remocao
+continua:	
+	lw s1, 0(t3)
+	sw s1, 0(s3)
 	mv t3, t5
 update_remocao:
 	lw t0, remocoes
@@ -201,7 +205,6 @@ removido_ultimo:
 	lw t6, 0(t3)
 	ret
 
-#END REMOVER POR INDICE
 remover_por_valor_call:
 	jal ler_valor
 	jal remover_por_valor
@@ -216,9 +219,9 @@ remover_por_valor:
 remove_valor_loop:
 	lw t5, 4(t3)
 	addi t4, t4, 1
+	beqz t5, erro_remocao #indice nao existe na lista
 	lw t2, 0(t5)
 	beq t2, a1, remove_elemento
-	beqz t5, erro_remocao #indice nao existe na lista
 	mv t3, t5	
 	j remove_valor_loop
 	j update_remocao
