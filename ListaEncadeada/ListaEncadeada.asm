@@ -94,9 +94,9 @@ inserir_loop:
 	beqz t6, inserir_fim
 	lw t5, 0(t6) #carrega o proximo valor
 	bge a1, t5, continuar_insercao #se o novo valor for maior ou igual ao proximo, continua percorrendo
-	sw t6, 4(a0) #adiciona no meio
-	sw a0, 4(t4) #adiciona no meio
-	sw a1, 0(a0) #adiciona no meio
+	sw t6, 4(a0) #aponta para o proximo ja inserido
+	sw a0, 4(t4) #aponta o anterior para este valor
+	sw a1, 0(a0) #adiciona o valor
 	addi s4, s4, 1 #contador do indice
 	j update_estatisticas
 inserir_cabeca:	
@@ -114,9 +114,9 @@ continuar_insercao:
 	addi s4, s4, 1 #contador do indice
 	j inserir_loop
 inserir_fim:
-	sw a1, 0(a0)
-	sw zero, 4(a0)
-	sw a0, 4(t4)
+	sw a1, 0(a0) #adiciona o valor
+	sw zero, 4(a0) #aponta para null
+	sw a0, 4(t4) #aponta o anterior para este valor
 	
 	lw t6, 4(t4) #carrega o proximo
 	
